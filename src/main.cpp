@@ -3,21 +3,23 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
-#include <bitset>
 
 #include "cxxopts.hpp"
 
 #define KEY_FILE_SEPARATOR ','
 #define DEBUG(msg) (arg["verbose"].as<bool>() && std::cout << msg << std::flush)
 
+const std::string PREFIX_BIN_FILE = "knapsack_";
+
 cxxopts::ParseResult arg;
 cxxopts::Options options("./knapsack <input> <p> <q>", "KIV/BIT task 4 - knapsack encryption/decryption");
 
+std::string inputFileName;
 std::vector<uint8_t> inputData;
 std::vector<int> privateKey;
 std::vector<int> publicKey;
 std::vector<int> encryptedData;
-std::vector<int> decryptedData;
+std::vector<uint8_t> decryptedData;
 
 struct xgdc_values_t {
     int d;
@@ -162,7 +164,8 @@ void encryptData() {
     while (1) {
         value = getBit(i);
         if (value == -1) {
-            encryptedData.push_back(blockSum);
+            if (blockSum != 0)
+                encryptedData.push_back(blockSum);
             break;
         }
         DEBUG(value);
@@ -241,12 +244,22 @@ void decryptData(int p, int q) {
         block |= (originalData[i] == '1') << pos;
         if (pos == 0) {
             decryptedData.push_back(block);
-            std::cout << (char)block;
             pos = 7;
             block = 0;
         } else {
             pos--;
         }
+    }
+    if (arg["binary"].as<bool>()) {
+        DEBUG("creating a binary output file '");
+        DEBUG(PREFIX_BIN_FILE);
+        DEBUG(inputFileName);
+        DEBUG("'...");
+
+        std::ofstream output(PREFIX_BIN_FILE + inputFileName, std::ios::binary);
+        output.write((const char *)&decryptedData[0], decryptedData.size());
+        output.close();
+        DEBUG("OK\n");
     }
 }
 
@@ -254,6 +267,7 @@ int main(int argc, char *argv[]) {
     options.add_options()
         ("v,verbose", "print out info as the program proceeds", cxxopts::value<bool>()->default_value("false"))
         ("o,output", "name of the output file", cxxopts::value<std::string>()->default_value("output.txt"))
+        ("b,binary", "the input file will be treated as a binary file", cxxopts::value<bool>()->default_value("false"))
         ("k,private-key", "file containing the private key", cxxopts::value<std::string>()->default_value("private_key.txt"))
         ("l,public-key", "file containing the private key", cxxopts::value<std::string>()->default_value("public_key.txt"))
         ("p,print", "print out the binary data as well as the decrypted text", cxxopts::value<bool>()->default_value("false"))
@@ -269,7 +283,7 @@ int main(int argc, char *argv[]) {
         std::cout << "     Run './knapsack --help'\n";
         return 1;
     }    
-    std::string inputFileName = argv[1];
+    inputFileName = argv[1];
     std::string pStr = argv[2];
     std::string qStr = argv[3];
 
