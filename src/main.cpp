@@ -139,9 +139,11 @@ int isSuperincreasing(std::vector<int> &seq) {
 void generatePublicKey(int p, int q) {
     DEBUG("generating a public key...");
     std::ofstream file(arg["public-key"].as<std::string>());
-    for (int x : privateKey) {
-        publicKey.push_back((p * x) % q);
-        file << *publicKey.rbegin() << ",";
+    for (int i = 0; i < (int)privateKey.size(); i++) {
+        publicKey.push_back((p * privateKey[i]) % q);
+        file << *publicKey.rbegin();
+        if (i < (int)privateKey.size() - 1)
+            file << ",";
     }
     file.close();
     DEBUG("OK\n");
