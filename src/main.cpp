@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
+#include <bitset>
 
 #include "cxxopts.hpp"
 
@@ -221,16 +222,30 @@ void decryptData(int p, int q) {
     DEBUG(invertedP);
     DEBUG(")\n");
 
+    std::string originalData = "";
     for (int x : encryptedData) {
         int val = (invertedP * x) % q;
         if (arg["verbose"].as<bool>())
-            std::cout << "(" << invertedP << " * " << x << ") % " << q << " = " << val;
+            std::cout << "(" << invertedP << " * " << x << ") % " << q << " = " << val << " | ";
+
         auto bin = findValuesInPrivateKey(val);
-        if (arg["verbose"].as<bool>()) {
-            std::cout << " | ";
-            for (int b : bin)
-                std::cout << b;
-            std::cout << "\n";
+        for (int b : bin) {
+            originalData += std::to_string(b);
+            DEBUG(b);
+        }
+        DEBUG("\n");
+    }
+    uint8_t block = 0;
+    int pos = 7;
+    for (int i = 0; i < (int)originalData.length(); i++) {
+        block |= (originalData[i] == '1') << pos;
+        if (pos == 0) {
+            decryptedData.push_back(block);
+            std::cout << (char)block;
+            pos = 7;
+            block = 0;
+        } else {
+            pos--;
         }
     }
 }
