@@ -1,6 +1,6 @@
 TARGET = knapsack 
 SUBMIT_FILE = BIT_ukol4_jakub_silhavy.zip
-FILES_TO_SUBMIT = src input.txt dwarf_small.bmp keys.txt doc Makefile README.md
+FILES_TO_SUBMIT = src data keys Makefile README.md
 CCX    = g++
 FLAGS  = -Wall -O2 -std=c++17 -pedantic-errors -Wextra -Werror
 SRC    = src
