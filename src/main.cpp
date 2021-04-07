@@ -8,7 +8,6 @@
 #include "cxxopts.hpp"
 
 #define KEY_FILE_SEPARATOR ','
-#define HEX_ZERO_PADDING 5
 #define DEBUG(msg) (arg["verbose"].as<bool>() && std::cout << msg << std::flush)
 
 const std::string PREFIX_BIN_FILE = "knapsack_";
@@ -171,12 +170,14 @@ void generatePublicKey(int p, int q) {
 }
 
 template<typename T>
-void appendDataToOutputFile(std::vector<T> data, bool binary) {
-    DEBUG("adding data into the output file...");
+void appendDataToOutputFile(std::vector<T> data, bool binary, std::string msg) {
+    DEBUG("adding data into the output file (");
+    DEBUG(msg);
+    DEBUG(")...");
     std::ofstream file(arg["output"].as<std::string>(), std::ios::app);
     for (auto x : data) {
         if (binary)
-            file << std::setfill('0') << std::setw(HEX_ZERO_PADDING) << std::right << std::hex << std::uppercase << (int)x << " ";
+            file << std::setfill('0') << std::setw(arg["hex-padding"].as<uint8_t>()) << std::right << std::hex << std::uppercase << (int)x << " ";
         else
             file << (char)x;
     }
@@ -190,7 +191,6 @@ void removeOutputFile() {
     remove(arg["output"].as<std::string>().c_str());
     DEBUG("OK\n");
 }
-
 
 int getBit(int index) {
     int p = index / 8;
@@ -213,13 +213,13 @@ void encryptData() {
                 encryptedData.push_back(blockSum);
             break;
         }
-        if (arg["print"].as<bool>())
+        if (arg["debug"].as<bool>())
             std::cout << value;
 
         if (value == 1)
             blockSum += publicKey[i % publicKey.size()];
         if ((i+1) % publicKey.size() == 0) {
-            if (arg["print"].as<bool>())
+            if (arg["debug"].as<bool>())
                 std::cout << " | " << blockSum << "\n";
             encryptedData.push_back(blockSum);
             blockSum = 0;
@@ -227,13 +227,13 @@ void encryptData() {
         i++;
     }
     if (arg["print"].as<bool>()) {
-        std::cout << "encrypted data: ";
+        std::cout << "encrypted data (HEX): ";
         for (int x : encryptedData)
-            std::cout << x << " ";
+            std::cout << std::setfill('0') << std::setw(arg["hex-padding"].as<uint8_t>()) << std::right << std::hex << std::uppercase << x << " ";
         std::cout << "\n";
     }
     removeOutputFile();
-    appendDataToOutputFile(encryptedData, true);
+    appendDataToOutputFile(encryptedData, true, "encrypted data");
 }
 
 xgdc_values_t xgdc(int a, int b) {
@@ -294,16 +294,16 @@ void decryptData(int p, int q) {
     std::string originalData = "";
     for (int x : encryptedData) {
         int val = mult(invertedP, x, q);
-        if (arg["print"].as<bool>())
+        if (arg["debug"].as<bool>())
             std::cout << "(" << invertedP << " * " << x << ") % " << q << " = " << val << " | ";
 
         auto bin = findValuesInPrivateKey(val);
         for (int b : bin) {
             originalData += std::to_string(b);
-            if (arg["print"].as<bool>())
+            if (arg["debug"].as<bool>())
                 std::cout << b;
         }
-        if (arg["print"].as<bool>())
+        if (arg["debug"].as<bool>())
             std::cout << "\n";
     }
     uint8_t block = 0;
@@ -318,14 +318,27 @@ void decryptData(int p, int q) {
             pos--;
         }
     }
-    appendDataToOutputFile(decryptedData, true);
+    if (arg["print"].as<bool>()) {
+        std::cout << "decrypted data (HEX): ";
+        for (int x : decryptedData)
+            std::cout << std::setfill('0') << std::setw(arg["hex-padding"].as<uint8_t>()) << std::right << std::hex << std::uppercase << x << " ";
+        std::cout << "\n";
+
+        if (!arg["binary"].as<bool>()) {
+            std::cout << "decrypted data (ASCII): ";
+            for (int x : decryptedData)
+                std::cout << (char)x;
+            std::cout << "\n";
+        }
+    }
+    appendDataToOutputFile(decryptedData, true, "decrypted data");
     if (arg["binary"].as<bool>()) {
         createBinaryOutputFile();
         std::ofstream file(arg["output"].as<std::string>(), std::ios::app);
         file << "INFO: The decrypted content of the file can be found in '" << ouputFileName << "'\n";
     }
     else
-        appendDataToOutputFile(decryptedData, false);
+        appendDataToOutputFile(decryptedData, false, "decrypted plain text");
 }
 
 int main(int argc, char *argv[]) {
@@ -336,6 +349,8 @@ int main(int argc, char *argv[]) {
         ("k,private-key", "file containing the private key", cxxopts::value<std::string>()->default_value("keys/private_key_1.txt"))
         ("l,public-key", "file containing the private key", cxxopts::value<std::string>()->default_value("public_key.txt"))
         ("p,print", "print out the binary data as well as the decrypted text", cxxopts::value<bool>()->default_value("false"))
+        ("d,debug", "print out step-by-step the process of encryption/decryption", cxxopts::value<bool>()->default_value("false"))
+        ("x,hex-padding", "set number of digits to be printed out in a hexadecimal format", cxxopts::value<uint8_t>()->default_value("5"))
         ("h,help", "print help")
     ;
     arg = options.parse(argc, argv);
