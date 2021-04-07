@@ -1,12 +1,14 @@
 #include <iostream>
-#include <unordered_map>
 #include <vector>
 #include <fstream>
 #include <cmath>
+#include <iomanip>
+#include <unordered_map>
 
 #include "cxxopts.hpp"
 
 #define KEY_FILE_SEPARATOR ','
+#define HEX_ZERO_PADDING 5
 #define DEBUG(msg) (arg["verbose"].as<bool>() && std::cout << msg << std::flush)
 
 const std::string PREFIX_BIN_FILE = "knapsack_";
@@ -15,6 +17,8 @@ cxxopts::ParseResult arg;
 cxxopts::Options options("./knapsack <input> <p> <q>", "KIV/BIT task 4 - knapsack encryption/decryption");
 
 std::string inputFileName;
+std::string ouputFileName;
+
 std::vector<uint8_t> inputData;
 std::vector<int> privateKey;
 std::vector<int> publicKey;
@@ -136,7 +140,6 @@ int isSuperincreasing(std::vector<int> &seq) {
     return sum;
 }
 
-// (a * b) % c
 int mult(int a, int b, int c) {
     if (a == 0 || b == 0)
         return 0;
@@ -166,6 +169,28 @@ void generatePublicKey(int p, int q) {
     file.close();
     DEBUG("OK\n");
 }
+
+template<typename T>
+void appendDataToOutputFile(std::vector<T> data, bool binary) {
+    DEBUG("adding data into the output file...");
+    std::ofstream file(arg["output"].as<std::string>(), std::ios::app);
+    for (auto x : data) {
+        if (binary)
+            file << std::setfill('0') << std::setw(HEX_ZERO_PADDING) << std::right << std::hex << std::uppercase << (int)x << " ";
+        else
+            file << (char)x;
+    }
+    file << '\n';
+    file.close();
+    DEBUG("OK\n");
+}
+
+void removeOutputFile() {
+    DEBUG("removing output file...");
+    remove(arg["output"].as<std::string>().c_str());
+    DEBUG("OK\n");
+}
+
 
 int getBit(int index) {
     int p = index / 8;
@@ -207,6 +232,8 @@ void encryptData() {
             std::cout << x << " ";
         std::cout << "\n";
     }
+    removeOutputFile();
+    appendDataToOutputFile(encryptedData, true);
 }
 
 xgdc_values_t xgdc(int a, int b) {
@@ -235,6 +262,24 @@ std::vector<int> findValuesInPrivateKey(int n) {
                 return bin;
         }
     return bin; 
+}
+
+void createBinaryOutputFile() {
+    size_t lastPosOfSlash = inputFileName.find_last_of('/');
+    ouputFileName = PREFIX_BIN_FILE;
+    if (lastPosOfSlash != std::string::npos)
+        ouputFileName += inputFileName.substr(lastPosOfSlash + 1, inputFileName.length());
+    else
+        ouputFileName += inputFileName;
+
+    DEBUG("creating a binary output file '");
+    DEBUG(ouputFileName);
+    DEBUG("'...");
+
+    std::ofstream output(ouputFileName, std::ios::binary);
+    output.write((const char *)&decryptedData[0], decryptedData.size());
+    output.close();
+    DEBUG("OK\n");
 }
 
 void decryptData(int p, int q) {
@@ -273,23 +318,14 @@ void decryptData(int p, int q) {
             pos--;
         }
     }
+    appendDataToOutputFile(decryptedData, true);
     if (arg["binary"].as<bool>()) {
-        size_t lastPosOfSlash = inputFileName.find_last_of('/');
-        std::string ouputFile = PREFIX_BIN_FILE;
-        if (lastPosOfSlash != std::string::npos)
-            ouputFile += inputFileName.substr(lastPosOfSlash + 1, inputFileName.length());
-        else
-            ouputFile += inputFileName;
-
-        DEBUG("creating a binary output file '");
-        DEBUG(ouputFile);
-        DEBUG("'...");
-
-        std::ofstream output(ouputFile, std::ios::binary);
-        output.write((const char *)&decryptedData[0], decryptedData.size());
-        output.close();
-        DEBUG("OK\n");
+        createBinaryOutputFile();
+        std::ofstream file(arg["output"].as<std::string>(), std::ios::app);
+        file << "INFO: The decrypted content of the file can be found in '" << ouputFileName << "'\n";
     }
+    else
+        appendDataToOutputFile(decryptedData, false);
 }
 
 int main(int argc, char *argv[]) {
