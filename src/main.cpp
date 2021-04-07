@@ -188,13 +188,14 @@ void encryptData() {
                 encryptedData.push_back(blockSum);
             break;
         }
-        DEBUG(value);
+        if (arg["print"].as<bool>())
+            std::cout << value;
+
         if (value == 1)
             blockSum += publicKey[i % publicKey.size()];
         if ((i+1) % publicKey.size() == 0) {
-            DEBUG(" | ");
-            DEBUG(blockSum);
-            DEBUG("\n");
+            if (arg["print"].as<bool>())
+                std::cout << " | " << blockSum << "\n";
             encryptedData.push_back(blockSum);
             blockSum = 0;
         }
@@ -241,22 +242,24 @@ void decryptData(int p, int q) {
     DEBUG("calculating p^(-1) using the extended euclidean algorithm...");
     int invertedP = getInvertedP(p, q);
     DEBUG("OK (");
-    DEBUG("p=");
+    DEBUG("p^(-1)=");
     DEBUG(invertedP);
     DEBUG(")\n");
 
     std::string originalData = "";
     for (int x : encryptedData) {
         int val = mult(invertedP, x, q);
-        if (arg["verbose"].as<bool>())
+        if (arg["print"].as<bool>())
             std::cout << "(" << invertedP << " * " << x << ") % " << q << " = " << val << " | ";
 
         auto bin = findValuesInPrivateKey(val);
         for (int b : bin) {
             originalData += std::to_string(b);
-            DEBUG(b);
+            if (arg["print"].as<bool>())
+                std::cout << b;
         }
-        DEBUG("\n");
+        if (arg["print"].as<bool>())
+            std::cout << "\n";
     }
     uint8_t block = 0;
     int pos = 7;
