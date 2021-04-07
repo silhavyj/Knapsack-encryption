@@ -25,8 +25,9 @@ std::vector<int> encryptedData;
 std::vector<uint8_t> decryptedData;
 
 struct xgdc_values_t {
-    int d;
-    int x;
+    // a*x + b*y = gdc(a,b)
+    int d; // gdc(a,b)
+    int x; 
     int y;
 };
 
@@ -139,6 +140,7 @@ int isSuperincreasing(std::vector<int> &seq) {
     return sum;
 }
 
+// (a * b) % c
 int mult(int a, int b, int c) {
     if (a == 0 || b == 0)
         return 0;
