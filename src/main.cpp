@@ -136,11 +136,29 @@ int isSuperincreasing(std::vector<int> &seq) {
     return sum;
 }
 
+// (a * b) % c
+int mult(int a, int b, int c) {
+    if (a == 0 || b == 0)
+        return 0;
+    if (a == 1)
+        return b;
+    if (b == 1)
+        return a;
+
+    int a2 = mult(a, b / 2, c);
+
+    if ((b & 1) == 0) {
+        return (a2 + a2) % c;
+    } else {
+        return ((a % c) + (a2 + a2)) % c;
+    }
+}
+
 void generatePublicKey(int p, int q) {
     DEBUG("generating a public key...");
     std::ofstream file(arg["public-key"].as<std::string>());
     for (int i = 0; i < (int)privateKey.size(); i++) {
-        publicKey.push_back((p * privateKey[i]) % q);
+        publicKey.push_back(mult(p, privateKey[i], q));
         file << *publicKey.rbegin();
         if (i < (int)privateKey.size() - 1)
             file << ",";
@@ -229,7 +247,7 @@ void decryptData(int p, int q) {
 
     std::string originalData = "";
     for (int x : encryptedData) {
-        int val = (invertedP * x) % q;
+        int val = mult(invertedP, x, q);
         if (arg["verbose"].as<bool>())
             std::cout << "(" << invertedP << " * " << x << ") % " << q << " = " << val << " | ";
 
@@ -253,12 +271,18 @@ void decryptData(int p, int q) {
         }
     }
     if (arg["binary"].as<bool>()) {
+        size_t lastPosOfSlash = inputFileName.find_last_of('/');
+        std::string ouputFile = PREFIX_BIN_FILE;
+        if (lastPosOfSlash != std::string::npos)
+            ouputFile += inputFileName.substr(lastPosOfSlash + 1, inputFileName.length());
+        else
+            ouputFile += inputFileName;
+
         DEBUG("creating a binary output file '");
-        DEBUG(PREFIX_BIN_FILE);
-        DEBUG(inputFileName);
+        DEBUG(ouputFile);
         DEBUG("'...");
 
-        std::ofstream output(PREFIX_BIN_FILE + inputFileName, std::ios::binary);
+        std::ofstream output(ouputFile, std::ios::binary);
         output.write((const char *)&decryptedData[0], decryptedData.size());
         output.close();
         DEBUG("OK\n");
@@ -270,7 +294,7 @@ int main(int argc, char *argv[]) {
         ("v,verbose", "print out info as the program proceeds", cxxopts::value<bool>()->default_value("false"))
         ("o,output", "name of the output file", cxxopts::value<std::string>()->default_value("output.txt"))
         ("b,binary", "the input file will be treated as a binary file", cxxopts::value<bool>()->default_value("false"))
-        ("k,private-key", "file containing the private key", cxxopts::value<std::string>()->default_value("private_key.txt"))
+        ("k,private-key", "file containing the private key", cxxopts::value<std::string>()->default_value("keys/private_key_1.txt"))
         ("l,public-key", "file containing the private key", cxxopts::value<std::string>()->default_value("public_key.txt"))
         ("p,print", "print out the binary data as well as the decrypted text", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "print help")
