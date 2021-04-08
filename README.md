@@ -38,14 +38,14 @@ There's no limitation as to what type of the input file should be. However, in c
 
 ### private key
 The private key should be represented by a `txt` file containing numbers separated by a semicolon `;`.
-Additionally, the sequence of numbers should be super-increasing [https://en.wikipedia.org/wiki/Superincreasing_sequence](). The user has the option to specify a private key using the `-k` option when running the program.
+Additionally, the sequence of numbers should be [super-increasing](https://en.wikipedia.org/wiki/Superincreasing_sequence). The user has the option to specify a private key using the `-k` option when running the program.
 
 #### example of a private key file (a super-increasing sequence)
 ```
 51,78,198,619,1111,3255,7596,13533
 ```
 ### values `p` and `q`
-These two values must follow two rules. First of all, the numbers are supposed to be relatively prime [https://en.wikipedia.org/wiki/Coprime_integers](). And secondly, the value `q` must be greater than the sum of all values making up a private key.
+These two values must follow two rules. First of all, the numbers are supposed to be [relatively prime](https://en.wikipedia.org/wiki/Coprime_integers). And secondly, the value `q` must be greater than the sum of all values making up a private key.
 ### output
 As the first step, the program will generate a public key off the private one using the values `p` and `q`. The public key will be stored by default in `public_key.txt`, but it could be changed using the `-l` option. The formula used for generating a public key is `public[i] = (p * private[i]) % q`. This key is supposed to be sent out to other people so they can encrypt data in way that we're the only ones who will be able to decrypt it afterwards.
 
@@ -69,7 +69,7 @@ INFO: The decrypted content of the file can be found in 'knapsack_dwarf_small.bm
 ## Knapsack encryption algorithm
 ### encryption
 The process of encryption works the following way. 
-1.	The private key is read off the file making all the conditions are satisfied - the sequence must be super-increasing, the values `p` and `q` must be relativity prime, and lastly, the value `q` must be greater than the sum of all the values in the private key.
+1.	The private key is read off the file which satisfies all the conditions - the sequence must be super-increasing, the values `p` and `q` must be relativity prime, and lastly, the value `q` must be greater than the sum of all the values in the private key.
 2.	A public key (another sequence) is generated using the following formula `public[i] = (p * private[i]) % q`. The public key is used in the next step for encrypting the data.
 3.	The data of the input file is treated as bits. The total number of values in the private key determines the size of one block of the data (number of bits). The input data will be then split up into blocks of this size where each block is looked at as a sequence of bits. For example, if the number of values in the private key is 8, then a block of data may look like `10110010`. Now, having the public key, we will go over the block of data and for each bit set to 1, we will add the corresponding value (at the same position) of the public key to the final sum. The final sum then represents one piece of data that has been encrypted.
 #### example of encryption
@@ -91,8 +91,8 @@ sum = 0
 encrypted block of data = 326 (146 HEX)
 ```
 ### decryption
-For the decryption process, we can only use the values `p` and `q` along with the private key itself.
-1. The first step is to calculate the value `p^(-1)` which plays a crucial role in terms of decryption. The value is calculated by the following formula `p * p^(-1) mod q = 1`. To work this out, we can use the extended version of the Euclidean algorithm [https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm]().
+For the decryption process, we only use the values `p` and `q` along with the `private key` itself.
+1. The first step is to calculate the value `p^(-1)` which plays a crucial role in terms of decryption. The value is calculated by the following formula `p * p^(-1) mod q = 1`. To work this out, we can use the extended version of the [Euclidean algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm).
 #### the implementation of the Extended Euclidean algorithm
 ```c++
 struct xgdc_values_t {
@@ -118,8 +118,8 @@ int getInvertedP(int p, int q) {
     return q + values.x;
 }
 ```
-2.  Once we've worked out `p^(-1)`, we will iterate of the the encrypted data and on each block, we will apply the following formula `block[i] * p^(-1) mod q`.
-3. Finally, using the private key we'll break each value into bits  which should match the original plain text. Let's assume the formula above gave us the number `43`. We'll go over the private key in a decreasing order and for each value of the key, we will write down `1` if it fits into the current value (43) and `0` if it doesn't. If it does fit, will subtract it from the current value before move on to another position within the private key.
+2.  Once we've worked out `p^(-1)`, we will iterate over the encrypted data and on each block, we will apply the following formula `block[i] * p^(-1) mod q`.
+3. Finally, using the private key we'll break each value into bits  which should match the original plain text. Let's assume the formula above gave us the number `43`. We'll go over the private key in a decreasing order (from right to left) and for each value of the key, we will write down `1` if it fits into the current value (43) and `0` if it doesn't. If it does fit, will subtract it from the current value before moving on to another position within the private key.
 #### example of decryption
 ```
 let's assumte the formula above produced number the 43.
@@ -130,14 +130,14 @@ sum = 43
 155 - doesn't fit -> 0
 35  - does fit    -> 1 (sum = sum - 35 = 8)
 15  - doesn't fit -> 0
-8   - does fit    -> 1 (sum = sum - 8 = 0) we're done :)
+8   - does fit    -> 1 (sum = sum - 8 = 0)
 3   - doesn't fit -> 0
 ----------------
 decrypted data = 01010
 ```
 ## Implementation
 ### multiplication of large numbers
-Since the process of multiplying two numbers can produce a number that could overflow the `int` data type, a modified algorithm for  multiplication was implemented. The time complexity of this algorithm is `O(log n)`.
+Since the process of multiplying two large numbers can produce a number that could overflow the `int` data type, a modified algorithm for  multiplication was implemented. The time complexity of this algorithm is `O(log n)`.
 ```c++
 // (a * b) % c
 int mult(int a, int b, int c) {
